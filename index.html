@@ -84,7 +84,8 @@
     .bo-tag.tag-dark    { color: #7070b8; background: rgba(112,112,184,.1); }
     .bo-tag.tag-rush    { color: #c04040; background: rgba(192,64,64,.1); }
     .bo-tag.tag-boom    { color: #4080c0; background: rgba(64,128,192,.1); }
-    .bo-tag.tag-eco     { color: #508050; background: rgba(80,128,80,.1); }
+    .bo-tag.tag-eco      { color: #508050; background: rgba(80,128,80,.1); }
+    .bo-tag.tag-imperial { color: #9a3020; background: rgba(154,48,32,.1); }
 
     .bo-name {
       font-size: 17px; font-weight: 700; color: var(--head);
@@ -141,6 +142,7 @@
     <button class="filter-btn" data-filter="boom">Boom</button>
     <button class="filter-btn" data-filter="feudal">Féodal</button>
     <button class="filter-btn" data-filter="castle">Châteaux</button>
+    <button class="filter-btn" data-filter="imperial">Impérial</button>
   </div>
 
   <div class="bo-list" id="boList">
@@ -208,6 +210,40 @@
           <span class="bo-stat">Vills. féodaux <b>20</b></span>
           <span class="bo-stat">Temps féodal <b>~10:30</b></span>
           <span class="bo-stat">Premiers éclaireurs <b>~12:00</b></span>
+        </div>
+      </div>
+      <div class="bo-arrow">→</div>
+    </a>
+
+    <a class="bo-card" href="fast-imperial.html" data-tags="boom imperial">
+      <div class="bo-body">
+        <div class="bo-meta">
+          <span class="bo-tag tag-boom">Boom</span>
+          <span class="bo-tag tag-imperial">Impérial</span>
+        </div>
+        <div class="bo-name">Fast Imperial</div>
+        <div class="bo-desc">30 villageois, cerfs poussés par l'éclaireur pour accélérer le boom. Monastère + Atelier de siège en Âge des châteaux, passage direct à l'Âge impérial avec booming massif.</div>
+        <div class="bo-stats">
+          <span class="bo-stat">Vills. féodaux <b>30</b></span>
+          <span class="bo-stat">Temps féodal <b>~17:30</b></span>
+          <span class="bo-stat">Âge impérial <b>~24:00</b></span>
+        </div>
+      </div>
+      <div class="bo-arrow">→</div>
+    </a>
+
+    <a class="bo-card" href="fast-castle-castle.html" data-tags="castle boom">
+      <div class="bo-body">
+        <div class="bo-meta">
+          <span class="bo-tag tag-castle">Châteaux</span>
+          <span class="bo-tag tag-boom">Boom</span>
+        </div>
+        <div class="bo-name">Fast Castle + Castle</div>
+        <div class="bo-desc">27 villageois, pierre récoltée dès l'Âge sombre. Marché + Forge en Âge féodal, Château construit dès l'Âge des châteaux pour spammer vos Unités Uniques.</div>
+        <div class="bo-stats">
+          <span class="bo-stat">Vills. féodaux <b>27</b></span>
+          <span class="bo-stat">Temps féodal <b>~13:00</b></span>
+          <span class="bo-stat">Premier Château <b>~17:00</b></span>
         </div>
       </div>
       <div class="bo-arrow">→</div>
