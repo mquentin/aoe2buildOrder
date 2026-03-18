@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AoE2 — Ordres de jeu</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:      #f7f5f2;
+      --surface: #eeebe6;
+      --line:    #ddd9d2;
+      --muted:   #9a9188;
+      --body:    #4a4540;
+      --head:    #1a1714;
+      --gold:    #8a6a10;
+      --gold-dim:#b8952a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--body);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .page { max-width: 640px; margin: 0 auto; padding: 0 24px 80px; }
+
+    header {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 36px;
+    }
+    .eyebrow {
+      font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 10px;
+    }
+    h1 {
+      font-size: clamp(22px, 5vw, 32px); font-weight: 700;
+      color: var(--head); letter-spacing: -0.5px; margin-bottom: 5px;
+    }
+    .tagline { font-size: 14px; color: var(--muted); }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px;
+    }
+    .filter-btn {
+      font-size: 11px; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; padding: 5px 12px;
+      border: 1px solid var(--line); border-radius: 20px;
+      background: none; color: var(--muted); cursor: pointer;
+      transition: all .15s;
+    }
+    .filter-btn:hover  { color: var(--body); border-color: var(--muted); }
+    .filter-btn.active { background: var(--head); color: var(--bg); border-color: var(--head); }
+
+    /* ── BUILD ORDER CARDS ── */
+    .bo-list { display: flex; flex-direction: column; gap: 0; }
+
+    .bo-card {
+      display: grid; grid-template-columns: 1fr auto;
+      align-items: center; gap: 16px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+      text-decoration: none; color: inherit;
+      transition: background .15s;
+    }
+    .bo-card:first-child { border-top: 1px solid var(--line); }
+    .bo-card:hover .bo-name { color: var(--gold); }
+    .bo-card:hover .bo-arrow { opacity: 1; transform: translateX(3px); }
+
+    .bo-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+    .bo-tag {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; padding: 2px 7px;
+      border-radius: 3px; background: var(--surface);
+      color: var(--muted);
+    }
+    .bo-tag.tag-feudal  { color: #50a060; background: rgba(80,160,96,.1); }
+    .bo-tag.tag-castle  { color: #c08030; background: rgba(192,128,48,.1); }
+    .bo-tag.tag-dark    { color: #7070b8; background: rgba(112,112,184,.1); }
+    .bo-tag.tag-rush    { color: #c04040; background: rgba(192,64,64,.1); }
+    .bo-tag.tag-boom    { color: #4080c0; background: rgba(64,128,192,.1); }
+    .bo-tag.tag-eco     { color: #508050; background: rgba(80,128,80,.1); }
+
+    .bo-name {
+      font-size: 17px; font-weight: 700; color: var(--head);
+      line-height: 1.2; margin-bottom: 4px;
+      transition: color .15s;
+    }
+    .bo-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    .bo-stats {
+      display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap;
+    }
+    .bo-stat { font-size: 11px; color: var(--muted); }
+    .bo-stat b { color: var(--body); font-weight: 600; }
+
+    .bo-arrow {
+      font-size: 18px; color: var(--gold-dim);
+      opacity: .5; transition: opacity .15s, transform .15s;
+      flex-shrink: 0;
+    }
+
+    .bo-card.coming-soon {
+      opacity: .45; pointer-events: none; cursor: default;
+    }
+    .bo-tag.tag-soon {
+      color: var(--muted); background: var(--surface);
+      font-style: italic; letter-spacing: 0;
+      text-transform: none; font-weight: 400; font-size: 10px;
+    }
+
+    footer {
+      margin-top: 56px; padding-top: 22px;
+      border-top: 1px solid var(--line);
+      font-size: 11px; color: var(--muted); line-height: 2;
+    }
+
+    @media(max-width:520px){
+      .bo-stats { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <header>
+    <p class="eyebrow">Age of Empires II · Édition Définitive</p>
+    <h1>Ordres de jeu</h1>
+    <p class="tagline">1v1 Arabie · mis à jour pour The Last Chieftains (fév. 2026)</p>
+  </header>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all">Tous</button>
+    <button class="filter-btn" data-filter="rush">Rush</button>
+    <button class="filter-btn" data-filter="boom">Boom</button>
+    <button class="filter-btn" data-filter="feudal">Féodal</button>
+    <button class="filter-btn" data-filter="castle">Châteaux</button>
+  </div>
+
+  <div class="bo-list" id="boList">
+
+    <a class="bo-card" href="archer-rush.html" data-tags="rush feudal">
+      <div class="bo-body">
+        <div class="bo-meta">
+          <span class="bo-tag tag-rush">Rush</span>
+          <span class="bo-tag tag-feudal">Féodal</span>
+        </div>
+        <div class="bo-name">Archer Rush</div>
+        <div class="bo-desc">2 camps de tir à l'arc dès l'Âge féodal. Pression précoce par archers avec Fletching avant d'attaquer.</div>
+        <div class="bo-stats">
+          <span class="bo-stat">Vills. féodaux <b>21</b></span>
+          <span class="bo-stat">Temps féodal <b>~10:00</b></span>
+          <span class="bo-stat">Premiers archers <b>~12:30</b></span>
+        </div>
+      </div>
+      <div class="bo-arrow">→</div>
+    </a>
+
+    <a class="bo-card" href="maa-archers.html" data-tags="rush feudal">
+      <div class="bo-body">
+        <div class="bo-meta">
+          <span class="bo-tag tag-rush">Rush</span>
+          <span class="bo-tag tag-feudal">Féodal</span>
+        </div>
+        <div class="bo-name">Men-at-Arms + Archers</div>
+        <div class="bo-desc">Casernes à l'Âge sombre pour lancer 3 Miliciens → Men-at-Arms. Double pression en Âge féodal avec MAA et archers.</div>
+        <div class="bo-stats">
+          <span class="bo-stat">Vills. féodaux <b>21</b></span>
+          <span class="bo-stat">Temps féodal <b>~10:00</b></span>
+          <span class="bo-stat">Premiers MAA <b>~11:00</b></span>
+        </div>
+      </div>
+      <div class="bo-arrow">→</div>
+    </a>
+
+    <a class="bo-card" href="fast-castle-knights.html" data-tags="castle boom">
+      <div class="bo-body">
+        <div class="bo-meta">
+          <span class="bo-tag tag-castle">Châteaux</span>
+          <span class="bo-tag tag-boom">Boom</span>
+        </div>
+        <div class="bo-name">Fast Castle into Knights</div>
+        <div class="bo-desc">27 villageois pour passer féodal rapidement, Écurie + Forge en Âge féodal, puis double production de Chevaliers dès l'Âge des châteaux.</div>
+        <div class="bo-stats">
+          <span class="bo-stat">Vills. féodaux <b>27</b></span>
+          <span class="bo-stat">Temps féodal <b>~13:00</b></span>
+          <span class="bo-stat">Premiers chevaliers <b>~16:30</b></span>
+        </div>
+      </div>
+      <div class="bo-arrow">→</div>
+    </a>
+
+    <a class="bo-card" href="scout-rush.html" data-tags="rush feudal">
+      <div class="bo-body">
+        <div class="bo-meta">
+          <span class="bo-tag tag-rush">Rush</span>
+          <span class="bo-tag tag-feudal">Féodal</span>
+        </div>
+        <div class="bo-name">Scout Rush</div>
+        <div class="bo-desc">20 villageois en Âge féodal, Écurie dès l'arrivée pour harceler avec des Éclaireurs. Boom fermes en parallèle pour enchaîner.</div>
+        <div class="bo-stats">
+          <span class="bo-stat">Vills. féodaux <b>20</b></span>
+          <span class="bo-stat">Temps féodal <b>~10:30</b></span>
+          <span class="bo-stat">Premiers éclaireurs <b>~12:00</b></span>
+        </div>
+      </div>
+      <div class="bo-arrow">→</div>
+    </a>
+
+  </div>
+
+  <footer>
+    <p>Source : <a href="https://aoecompanion.com/build-guides" style="color:var(--gold-dim)">aoecompanion.com</a></p>
+    <p>Timings basés sur 1v1 Arabie, vitesse normale.</p>
+  </footer>
+
+</div>
+
+<script>
+  /* ── FILTER ── */
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const f = btn.dataset.filter;
+      document.querySelectorAll('.bo-card').forEach(card => {
+        const tags = (card.dataset.tags || '').split(' ');
+        card.style.display = (f === 'all' || tags.includes(f)) ? '' : 'none';
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

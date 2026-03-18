@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AoE2 — Archer Rush</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:      #f7f5f2;
+      --surface: #eeebe6;
+      --line:    #ddd9d2;
+      --muted:   #9a9188;
+      --body:    #4a4540;
+      --head:    #1a1714;
+      --gold:    #8a6a10;
+      --gold-dim:#b8952a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--body);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    #prog-bar  { position: fixed; top: 0; left: 0; right: 0; height: 2px; background: var(--line); z-index: 100; }
+    #prog-fill { height: 100%; width: 0%; background: var(--gold); transition: width .3s ease; }
+
+    .page { max-width: 640px; margin: 0 auto; padding: 0 24px 80px; }
+
+    header { padding: 52px 0 36px; border-bottom: 1px solid var(--line); margin-bottom: 36px; }
+    .eyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    h1 { font-size: clamp(24px, 5vw, 36px); font-weight: 700; color: var(--head); letter-spacing: -0.5px; margin-bottom: 5px; }
+    .tagline { font-size: 14px; color: var(--muted); }
+    .dlc-note { display: inline-block; margin-top: 12px; font-size: 11px; color: var(--gold); letter-spacing: 1px; }
+
+    .stats { display: grid; grid-template-columns: repeat(3,1fr); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 36px; }
+    .stat { padding: 14px 10px; text-align: center; border-right: 1px solid var(--line); }
+    .stat:last-child { border-right: none; }
+    .stat-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat-val   { font-size: 16px; font-weight: 700; color: var(--head); }
+
+    .controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+    .prog-label { font-size: 12px; color: var(--muted); }
+    .prog-label b { color: var(--gold); font-weight: 600; }
+    .reset { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 4px 0; border-bottom: 1px solid var(--line); transition: color .15s, border-color .15s; }
+    .reset:hover { color: var(--body); border-color: var(--muted); }
+
+    .age-label { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+    .age-label-text { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; white-space: nowrap; }
+    .age-label-text.dark   { color: #7070b8; }
+    .age-label-text.feudal { color: #50a060; }
+    .age-label-line { flex: 1; height: 1px; background: var(--line); }
+    .age-label-goal { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .vill-hint { font-size: 11px; color: var(--muted); margin-bottom: 18px; }
+
+    /* ── STEPS ── */
+    .step-list { margin-bottom: 32px; }
+    .step {
+      display: grid; grid-template-columns: 44px 1fr;
+      padding: 14px 0; border-bottom: 1px solid var(--line);
+      cursor: pointer; transition: opacity .2s; user-select: none;
+    }
+    .step:first-child { border-top: 1px solid var(--line); }
+    .step.done { opacity: .25; }
+    .step.done .action-name { text-decoration: line-through; }
+
+    .step-pop { font-size: 13px; font-weight: 700; color: var(--gold); padding-top: 7px; }
+
+    /* ── ACTIONS ── */
+    .action-item { display: flex; align-items: flex-start; gap: 10px; }
+    .action-item + .action-item { margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--line); }
+    .action-icon { width: 30px; height: 30px; border-radius: 4px; object-fit: cover; flex-shrink: 0; background: var(--surface); }
+    .action-body { flex: 1; min-width: 0; }
+    .action-from { font-size: 11px; color: var(--muted); font-style: italic; margin-bottom: 2px; }
+    .action-name { font-size: 15px; font-weight: 600; color: var(--head); line-height: 1.3; }
+    .action-desc { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+    .action-then { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    .step.age-up-step { background: rgba(184,149,42,.04); }
+    .age-up-divider { grid-column: 2; margin: 10px 0; border: none; border-top: 1px dashed var(--gold-dim); }
+    .ageup-action .action-name { color: var(--gold); }
+
+    /* ── RESOURCE DISTRIBUTION ── */
+    .res-row {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      margin-top: 10px; padding-top: 9px;
+      border-top: 1px solid var(--line);
+    }
+    .res-chip {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 11px; color: var(--muted);
+    }
+    .res-sq {
+      width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
+    }
+    /* resource square colors (fallback) */
+    .rs-sheep  { background: #c0903a; }
+    .rs-boar   { background: #8a5828; }
+    .rs-berry  { background: #a04868; }
+    .rs-wood   { background: #7a6038; }
+    .rs-gold   { background: #c8a010; }
+    .rs-farm   { background: #5a8840; }
+    /* resource icon image */
+    .res-img {
+      width: 16px; height: 16px; border-radius: 3px;
+      object-fit: cover; flex-shrink: 0;
+      image-rendering: auto;
+    }
+
+    /* ── TRANSITION BANNER ── */
+    .transition {
+      margin: 4px 0 28px; padding: 16px 18px;
+      border: 1px solid var(--line); border-left: 3px solid var(--gold);
+      border-radius: 0 6px 6px 0;
+    }
+    .transition-title { font-size: 13px; font-weight: 700; color: var(--head); margin-bottom: 6px; }
+    .transition-costs { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 6px; }
+    .t-cost { font-size: 13px; display: flex; align-items: center; gap: 5px; }
+    .t-cost b { font-weight: 700; }
+    .t-icon { width: 18px; height: 18px; border-radius: 3px; object-fit: cover; flex-shrink: 0; }
+    .b-food { color: #c86040; }
+    .b-gold { color: #c0a030; }
+    .transition-note { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+    /* ── SPLIT BAR ── */
+    .split-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    .split-bar { display: flex; height: 32px; border-radius: 5px; overflow: hidden; margin-bottom: 8px; }
+    .split-seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: rgba(255,255,255,.75); }
+    .seg-sheep  { background: rgba(156,120,64,.65);  flex: 3; }
+    .seg-berry  { background: rgba(136,64,96,.65);   flex: 4; }
+    .seg-wood   { background: rgba(106,80,48,.65);   flex: 10; }
+    .seg-gold   { background: rgba(176,144,32,.65);  flex: 3; }
+    .seg-farm   { background: rgba(90,120,56,.65);   flex: 15; }
+    .split-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; }
+    .sl-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    .sl-dot  { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+    .sl-icon { width: 16px; height: 16px; border-radius: 3px; object-fit: cover; flex-shrink: 0; }
+    .sl-val  { color: var(--body); font-weight: 600; }
+
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted); text-decoration: none;
+      padding: 20px 0 0; margin-bottom: -8px;
+      transition: color .15s;
+    }
+    .back-link:hover { color: var(--gold); }
+
+    footer { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); line-height: 2; }
+
+    @media(max-width:520px){
+      .stats { grid-template-columns: repeat(2,1fr); }
+      .stat:nth-child(2) { border-right: none; }
+      .stat:nth-child(1),.stat:nth-child(2) { border-bottom: 1px solid var(--line); }
+      .age-label-goal { display: none; }
+    }
+
+    @media print {
+      @page { size: A4 landscape; margin: 0.6cm 1cm; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      #prog-bar, .controls, .back-link, .vill-hint, .dlc-note, footer,
+      .transition, .split-bar, .split-legend, .split-label,
+      .action-desc, .action-from { display: none !important; }
+      body { font-size: 8.5px; background: white !important; color: #1a1714; }
+      .page { max-width: none; padding: 0; }
+      header { padding: 0 0 5px; border-bottom: 1.5px solid #ccc; margin-bottom: 6px;
+               display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+      .eyebrow { display: none; }
+      h1 { font-size: 13px; margin-bottom: 0; color: #1a1714; }
+      .tagline { font-size: 7px; color: #888; }
+      .stats { display: flex; gap: 0; margin-bottom: 6px; border-radius: 0; }
+      .stat { padding: 3px 10px; }
+      .stat-label { font-size: 6.5px; }
+      .stat-val { font-size: 9.5px; }
+      .age-label { margin: 5px 0 2px; break-after: avoid; page-break-after: avoid; }
+      .age-label-text { font-size: 7px; letter-spacing: 2px; }
+      .age-label-goal { display: none !important; }
+      .step-list { columns: 3; column-gap: 8px; margin-bottom: 6px; }
+      .step { display: flex !important; align-items: flex-start; gap: 4px;
+              padding: 2px 0; border-bottom: 1px solid #e8e8e8 !important;
+              border-top: none !important; break-inside: avoid; -webkit-column-break-inside: avoid; }
+      .step:first-child { border-top: 1px solid #e8e8e8 !important; }
+      .step-pop { flex-shrink: 0; width: 20px; text-align: right; font-size: 7.5px;
+                  font-weight: 700; color: #8a6a10; padding-top: 3px; }
+      .action-item { display: flex !important; align-items: flex-start; gap: 3px; }
+      .action-item + .action-item { margin-top: 1px; padding-top: 1px; border-top: 1px solid #f0eeec !important; }
+      .action-icon { width: 13px !important; height: 13px !important; border-radius: 2px !important; flex-shrink: 0 !important; }
+      .action-name { font-size: 7.5px !important; line-height: 1.2 !important; }
+      .action-then { font-size: 6.5px !important; color: #888; margin-top: 1px; }
+      .age-up-divider { margin: 2px 0 !important; }
+      .age-up-step { background: #fffef8 !important; }
+      .res-row { margin-top: 2px !important; padding-top: 2px !important; gap: 3px !important; }
+      .res-chip { font-size: 6px !important; }
+      .res-img { width: 8px !important; height: 8px !important; }
+      .res-sq { width: 7px !important; height: 7px !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="prog-bar"><div id="prog-fill"></div></div>
+
+<div class="page">
+
+  <a class="back-link" href="index.html">← Ordres de jeu</a>
+
+  <header>
+    <p class="eyebrow">Age of Empires II · Édition Définitive</p>
+    <h1>Archer Rush</h1>
+    <p class="tagline">Ordre de jeu · 1v1 Arabie</p>
+    <span class="dlc-note">↑ Mis à jour pour le DLC The Last Chieftains, fév. 2026</span>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Vills. féodaux</div><div class="stat-val">21</div></div>
+    <div class="stat"><div class="stat-label">Temps féodal</div><div class="stat-val">~10:00</div></div>
+    <div class="stat"><div class="stat-label">Premiers archers</div><div class="stat-val">~12:30</div></div>
+  </div>
+
+  <div class="controls">
+    <span class="prog-label"><b id="doneCount">0</b> / <b id="totalCount">0</b> étapes terminées</span>
+    <button class="reset" onclick="resetAll()">Réinitialiser</button>
+  </div>
+
+  <div class="age-label">
+    <span class="age-label-text dark">Âge sombre</span>
+    <span class="age-label-line"></span>
+    <span class="age-label-goal">numéro = nb de villageois</span>
+  </div>
+  <p class="vill-hint">Cliquez sur une étape pour la marquer comme terminée.</p>
+  <div class="step-list" id="darkSteps"></div>
+
+  <div class="transition">
+    <div class="transition-title">Passage à l'Âge féodal</div>
+    <div class="transition-costs">
+      <div class="t-cost"><img class="t-icon" src="https://aoecompanion.s3.eu-central-1.amazonaws.com/Sheep_ad32759471.png" alt="Nourriture" /> <b class="b-food">500 Nourriture</b></div>
+      <div class="t-cost" style="color:var(--muted);font-size:12px">~1 min 40 sec de transition</div>
+    </div>
+    <div class="transition-note">Pendant la montée en âge : 2 vills des Moutons → Bois (5 par camp) · 3 vills des Moutons → Camp minier → Or · à ~60% : 1 vill de la Nourriture → Casernes</div>
+  </div>
+
+  <div class="split-label">Répartition des villageois (Âge féodal)</div>
+  <div class="split-bar">
+    <div class="split-seg seg-sheep">3</div>
+    <div class="split-seg seg-berry">4</div>
+    <div class="split-seg seg-wood">10</div>
+    <div class="split-seg seg-gold">3</div>
+  </div>
+  <div class="split-legend">
+    <div class="sl-item"><img class="sl-icon" src="https://aoecompanion.s3.eu-central-1.amazonaws.com/Sheep_ad32759471.png" alt="Moutons" />Moutons <span class="sl-val">3</span></div>
+    <div class="sl-item"><img class="sl-icon" src="https://aoecompanion.s3.eu-central-1.amazonaws.com/Berry_Bush_c49661bcf2.png" alt="Baies" />Baies <span class="sl-val">4</span></div>
+    <div class="sl-item"><img class="sl-icon" src="https://aoecompanion.s3.eu-central-1.amazonaws.com/Wood_dad1808fff.png" alt="Bois" />Bois <span class="sl-val">10</span></div>
+    <div class="sl-item"><img class="sl-icon" src="https://aoecompanion.s3.eu-central-1.amazonaws.com/Gold_Mine_93164581ce.png" alt="Or" />Or <span class="sl-val">3</span></div>
+  </div>
+
+  <div class="age-label">
+    <span class="age-label-text feudal">Âge féodal</span>
+    <span class="age-label-line"></span>
+    <span class="age-label-goal">2 camps de tir · ne jamais laisser inactif</span>
+  </div>
+  <p class="vill-hint" style="margin-bottom:18px"></p>
+  <div class="step-list" id="feudalSteps"></div>
+
+  <div class="transition">
+    <div class="transition-title">Passage à l'Âge des châteaux</div>
+    <div class="transition-costs">
+      <div class="t-cost"><img class="t-icon" src="https://aoecompanion.s3.eu-central-1.amazonaws.com/Sheep_ad32759471.png" alt="Nourriture" /> <b class="b-food">800 Nourriture</b></div>
+      <div class="t-cost"><img class="t-icon" src="https://aoecompanion.s3.eu-central-1.amazonaws.com/Gold_Mine_93164581ce.png" alt="Or" /> <b class="b-gold">200 Or</b></div>
+      <div class="t-cost" style="color:var(--muted);font-size:12px">nécessite 2 bâtiments féodaux</div>
+    </div>
+    <div class="transition-note">Recherchez immédiatement Horse Collar + Gold Mining. Gardez les deux camps de tir à l'arc en production d'archers pendant toute la transition.</div>
+  </div>
+
+  <div class="split-label">Répartition des villageois (Âge des châteaux)</div>
+  <div class="split-bar">
+    <div class="split-seg seg-farm" style="flex:15">15</div>
+    <div class="split-seg seg-wood" style="flex:11">11</div>
+    <div class="split-seg seg-gold" style="flex:8">8</div>
+  </div>
+  <div class="split-legend" style="margin-bottom:0">
+    <div class="sl-item"><img class="sl-icon" src="https://aoecompanion.s3.eu-central-1.amazonaws.com/Farm_7938c10375.png" alt="Fermes" />Fermes <span class="sl-val">15</span></div>
+    <div class="sl-item"><img class="sl-icon" src="https://aoecompanion.s3.eu-central-1.amazonaws.com/Wood_dad1808fff.png" alt="Bois" />Bois <span class="sl-val">11</span></div>
+    <div class="sl-item"><img class="sl-icon" src="https://aoecompanion.s3.eu-central-1.amazonaws.com/Gold_Mine_93164581ce.png" alt="Or" />Or <span class="sl-val">8</span></div>
+  </div>
+
+  <footer>
+    <p>Source : <a href="https://aoecompanion.com/build-guides/archer-rush" style="color:var(--gold-dim)">aoecompanion.com</a> · DLC The Last Chieftains (17 fév. 2026)</p>
+    <p>Timings basés sur 1v1 Arabie, vitesse normale. Adaptez selon les bonus de civilisation et la disposition de la carte.</p>
+  </footer>
+
+</div>
+
+<script>
+/* ── ICONS ── */
+const I = {
+  villager:    "https://aoecompanion.s3.eu-central-1.amazonaws.com/Villager_c5732a578f.jpeg",
+  house:       "https://aoecompanion.s3.eu-central-1.amazonaws.com/House_1a89df1638.png",
+  sheep:       "https://aoecompanion.s3.eu-central-1.amazonaws.com/Sheep_ad32759471.png",
+  lumberCamp:  "https://aoecompanion.s3.eu-central-1.amazonaws.com/Lumber_Camp_ba2cc86087.png",
+  wood:        "https://aoecompanion.s3.eu-central-1.amazonaws.com/Wood_dad1808fff.png",
+  boar:        "https://aoecompanion.s3.eu-central-1.amazonaws.com/Boar_7bc9a17576.png",
+  berry:       "https://aoecompanion.s3.eu-central-1.amazonaws.com/Berry_Bush_c49661bcf2.png",
+  mill:        "https://aoecompanion.s3.eu-central-1.amazonaws.com/Mill_a58fc59e7f.png",
+  miningCamp:  "https://aoecompanion.s3.eu-central-1.amazonaws.com/Mining_Camp_6ec6659fa5.png",
+  barracks:    "https://aoecompanion.s3.eu-central-1.amazonaws.com/Barracks_28ba4438aa.png",
+  feudalAge:   "https://aoecompanion.s3.eu-central-1.amazonaws.com/Feudal_Age_c46e34924e.png",
+  loom:        "https://aoecompanion.s3.eu-central-1.amazonaws.com/Loom_25663c782e.png",
+  dblAxe:      "https://aoecompanion.s3.eu-central-1.amazonaws.com/Double_Bit_Axe_dbbedcfb9d.png",
+  archRange:   "https://aoecompanion.s3.eu-central-1.amazonaws.com/Archery_Range_ddb768ef5f.png",
+  blacksmith:  "https://aoecompanion.s3.eu-central-1.amazonaws.com/Blacksmith_2968805c15.png",
+  fletching:   "https://aoecompanion.s3.eu-central-1.amazonaws.com/Fletching_69eb73f2ea.png",
+  gold:        "https://aoecompanion.s3.eu-central-1.amazonaws.com/Gold_Mine_93164581ce.png",
+  farm:        "https://aoecompanion.s3.eu-central-1.amazonaws.com/Farm_7938c10375.png",
+  wheelbarrow: "https://aoecompanion.s3.eu-central-1.amazonaws.com/Wheelbarrow_8358cb3109.png",
+  castleAge:   "https://aoecompanion.s3.eu-central-1.amazonaws.com/Castle_Age_9bba6a1a1f.png",
+  horseCollar: "https://aoecompanion.s3.eu-central-1.amazonaws.com/Horse_Collar_a1b20cd5ea.png",
+  goldMining:  "https://aoecompanion.s3.eu-central-1.amazonaws.com/Gold_Mining_2927ac385d.png",
+};
+
+/* Couleurs de fallback pour les ressources */
+const RC = {
+  sheep: 'rs-sheep', boar: 'rs-boar', 'sheep/boar': 'rs-sheep',
+  berries: 'rs-berry', wood: 'rs-wood', gold: 'rs-gold', farm: 'rs-farm',
+};
+
+/* Étiquettes des ressources (noms du wiki français) */
+const RL = {
+  sheep:       'Moutons',
+  boar:        'Sanglier',
+  'sheep/boar':'Moutons/Sanglier',
+  berries:     'Baies',
+  wood:        'Bois',
+  gold:        'Or',
+  farm:        'Fermes',
+};
+
+/* Icônes des ressources */
+const RI = {
+  sheep:       I.sheep,
+  boar:        I.boar,
+  'sheep/boar':I.sheep,
+  berries:     I.berry,
+  wood:        I.wood,
+  gold:        I.gold,
+  farm:        I.farm,
+};
+
+function a(icon, name, desc, from, then) {
+  return { icon, name, desc: desc||"", from: from||"", then: then||"" };
+}
+
+/* ── ÂGE SOMBRE
+   dist = répartition des villageois APRÈS cette étape
+   Basé sur les données d'AoE Companion (Féodal : Moutons3 Baies4 Bois10 Or3)
+─────────────────────────────────────────────── */
+const dark = [
+  { pop:"3", dist:{sheep:3},
+    actions:[
+      a(I.villager, "Former des villageois", "Gardez votre Forum en production constante"),
+      a(I.house,    "2 Maisons",             "Deux villageois construisent l'une, un troisième construit l'autre", "", "→ Moutons quand c'est fait"),
+    ]},
+  { pop:"4–6", dist:{sheep:6},
+    actions:[
+      a(I.sheep, "Moutons", "Envoyez les nouveaux villageois aux moutons"),
+    ]},
+  { pop:"7", dist:{sheep:6, wood:1},
+    actions:[
+      a(I.lumberCamp, "Camp de bûcherons", "Construisez près des arbres les plus proches", "", "→ Bois quand c'est fait"),
+    ]},
+  { pop:"8–10", dist:{sheep:6, wood:4},
+    actions:[
+      a(I.wood, "Bois", "Envoyez les nouveaux villageois récolter du bois"),
+    ]},
+  { pop:"11", dist:{sheep:6, boar:1, wood:4},
+    actions:[
+      a(I.boar, "Attirer le sanglier", "Envoyez ce villageois attirer le sanglier le plus proche vers votre Forum"),
+    ]},
+  { pop:"12", dist:{sheep:6, boar:1, wood:4, berries:1},
+    actions:[
+      a(I.house, "2 Maisons", "Construisez deux maisons près de vos baies", "", "→ Baies quand c'est fait"),
+    ]},
+  { pop:"13", dist:{sheep:6, boar:1, wood:4, berries:2},
+    actions:[
+      a(I.mill, "Moulin", "Construisez près de vos baies", "", "→ Baies quand c'est fait"),
+    ]},
+  { pop:"14", dist:{sheep:6, boar:1, wood:4, berries:3},
+    actions:[
+      a(I.berry, "Baies", "Envoyez ce villageois aux baies"),
+    ]},
+  { pop:"15", dist:{sheep:6, boar:1, wood:4, berries:4},
+    actions:[
+      a(I.berry, "Baies",                  "Envoyez ce villageois aux baies"),
+      a(I.boar,  "Attirer le 2e sanglier", "Envoyez un villageois du sanglier attirer le deuxième vers le Forum"),
+    ]},
+  { pop:"16–17", dist:{sheep:8, boar:1, wood:4, berries:4},
+    actions:[
+      a(I.sheep, "Moutons / Sanglier", "Envoyez les nouveaux villageois aux moutons ou au sanglier"),
+    ]},
+  { pop:"18", dist:{sheep:8, boar:1, wood:5, berries:4},
+    actions:[
+      a(I.lumberCamp, "2e Camp de bûcherons", "Construisez un deuxième camp de bûcherons près de nouveaux arbres", "", "→ Bois quand c'est fait"),
+    ]},
+  { pop:"19–20", dist:{sheep:8, boar:1, wood:7, berries:4},
+    actions:[
+      a(I.wood, "Bois", "Envoyez les nouveaux villageois récolter du bois"),
+    ]},
+  /* Grande étape de montée en âge — dist indique l'état APRÈS toutes les réaffectations */
+  { pop:"21", ageUp:true, dist:{sheep:3, berries:4, wood:10, gold:3},
+    actions:[
+      a(I.wood,       "Bois",       "Envoyez ce villageois récolter du bois"),
+      a(I.loom,       "Loom",       "Recherchez le Loom dans votre Forum"),
+      a(I.feudalAge,  "Âge féodal", "Passez à l'Âge féodal"),
+      a(I.wood,       "Bois",       "5 villageois par camp de bûcherons",           "Prenez 2 depuis les Moutons →"),
+      a(I.miningCamp, "Camp minier + Or", "Construisez près de l'or, puis minez",   "Prenez 3 depuis les Moutons →", "→ Or quand c'est fait"),
+      a(I.barracks,   "Casernes",   "Construisez des casernes (peut être placé en avance)", "À ~60% de progression : prenez 1 depuis la Nourriture →"),
+    ]},
+];
+
+/* ── ÂGE FÉODAL ── */
+const feudal = [
+  { pop:"21", dist:{sheep:3, berries:4, wood:10, gold:3},
+    actions:[
+      a(I.dblAxe,    "Double-Bit Axe", "Recherchez dans un Camp de bûcherons"),
+      a(I.archRange, "2× Camp de tir à l'arc",   "Construisez deux camps de tir à l'arc", "", "→ <strong style='display:inline-block;background:rgba(192,64,64,.12);color:#c04040;border:1px solid rgba(192,64,64,.3);border-radius:4px;padding:1px 7px;font-size:12px;font-weight:700;letter-spacing:.3px'>Formez 6–8 Archers</strong>"),
+      a(I.blacksmith,"Forge",                     "Construisez une Forge"),
+      a(I.fletching, "Fletching",                  "Recherchez à la Forge", "Avant que les archers commencent à attaquer →"),
+    ]},
+  { pop:"22–25", dist:{berries:4, wood:10, gold:7, farm:3},
+    actions:[
+      a(I.gold, "Or",     "Envoyez les nouveaux villageois miner de l'or"),
+      a(I.farm, "Fermes", "Construisez des fermes autour du Forum ou du Moulin", "Prenez depuis les Moutons quand ils s'épuisent →"),
+    ]},
+  { pop:"26–33", dist:{wood:10, gold:8, farm:15},
+    actions:[
+      a(I.farm,        "Arbres isolés + Fermes", "Coupez les arbres isolés, construisez des fermes quand le bois le permet"),
+      a(I.wheelbarrow, "Wheelbarrow",             "Recherchez dans votre Forum"),
+      a(I.farm,        "Fermes",                 "Construisez autour de votre Moulin", "Prenez depuis les Baies quand elles s'épuisent →"),
+    ]},
+  { pop:"34", dist:{wood:11, gold:8, farm:15},
+    actions:[
+      a(I.wood, "Bois", "Envoyez ce villageois récolter du bois"),
+    ]},
+  { pop:"35", dist:{wood:11, gold:8, farm:15},
+    actions:[
+      a(I.gold,        "Or",               "Envoyez ce villageois miner de l'or"),
+      a(I.castleAge,   "Âge des châteaux", "Passez à l'Âge des châteaux"),
+      a(I.horseCollar, "Horse Collar",     "Recherchez dans votre Moulin"),
+      a(I.goldMining,  "Gold Mining",      "Recherchez dans votre Camp minier"),
+    ]},
+];
+
+/* ── RENDER ── */
+function renderDist(dist) {
+  // Fusionner moutons + sanglier en "Moutons/Sanglier" si les deux sont présents
+  const merged = { ...dist };
+  if (merged.sheep > 0 && merged.boar > 0) {
+    merged['sheep/boar'] = merged.sheep + merged.boar;
+    delete merged.sheep;
+    delete merged.boar;
+  }
+
+  const entries = Object.entries(merged).filter(([,v]) => v > 0);
+  if (!entries.length) return '';
+
+  const chips = entries.map(([key, val]) => {
+    const label  = RL[key]  || key;
+    const imgSrc = RI[key];
+    const fallbackCls = RC[key] || RC.sheep;
+    const icon   = imgSrc
+      ? `<img class="res-img" src="${imgSrc}" alt="${label}" onerror="this.outerHTML='<span class=\\'res-sq ${fallbackCls}\\'></span>'" />`
+      : `<span class="res-sq ${fallbackCls}"></span>`;
+    return `<span class="res-chip">${icon}${label}&nbsp;${val}</span>`;
+  }).join('');
+  return `<div class="res-row">${chips}</div>`;
+}
+
+function renderAction(ac) {
+  return `
+    <div class="action-item">
+      <img class="action-icon" src="${ac.icon}" onerror="this.style.display='none'" loading="lazy" />
+      <div class="action-body">
+        ${ac.from ? `<div class="action-from">${ac.from}</div>` : ''}
+        <div class="action-name">${ac.name}</div>
+        ${ac.desc ? `<div class="action-desc">${ac.desc}</div>` : ''}
+        ${ac.then ? `<div class="action-then">${ac.then}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderStep(s) {
+  const el = document.createElement('div');
+  el.className = 'step' + (s.ageUp ? ' age-up-step' : '');
+
+  let actionsHTML;
+  if (s.ageUp) {
+    const now    = s.actions.slice(0, 3);
+    const during = s.actions.slice(3);
+    actionsHTML  = now.map(renderAction).join('')
+      + `<hr class="age-up-divider" />`
+      + during.map(renderAction).join('');
+  } else {
+    actionsHTML = s.actions.map(renderAction).join('');
+  }
+
+  el.innerHTML = `
+    <div class="step-pop">${s.pop}</div>
+    <div class="step-content">
+      ${actionsHTML}
+      ${s.dist ? renderDist(s.dist) : ''}
+    </div>`;
+
+  el.addEventListener('click', () => { el.classList.toggle('done'); sync(); });
+  return el;
+}
+
+function renderList(steps, id) {
+  const c = document.getElementById(id);
+  steps.forEach(s => c.appendChild(renderStep(s)));
+}
+
+function sync() {
+  const all  = document.querySelectorAll('.step');
+  const done = document.querySelectorAll('.step.done');
+  document.getElementById('doneCount').textContent  = done.length;
+  document.getElementById('totalCount').textContent = all.length;
+  document.getElementById('prog-fill').style.width  = (done.length / all.length * 100) + '%';
+}
+
+function resetAll() {
+  document.querySelectorAll('.step.done').forEach(s => s.classList.remove('done'));
+  sync();
+}
+
+renderList(dark,   'darkSteps');
+renderList(feudal, 'feudalSteps');
+sync();
+</script>
+</body>
+</html>
